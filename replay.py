@@ -33,48 +33,20 @@ def replace_vars(obj, variables: Dict[str, str]):
 
 # -------------------- derivación de selectores --------------------
 def derive_selector_from_meta(meta: Dict[str, Any]) -> Optional[str]:
-    """
-    Usa la info de 'interacted_element' del steps.json para sacar un selector robusto:
-    1) id -> #id
-    2) data-test -> [data-test="..."]
-    3) name -> [name="..."]
-    4) css_selector (si viene completo)
-    5) xpath -> 'xpath=//...'
-    """
-    if not meta:
-        return None
+    if not meta: return None
     attrs = meta.get("attributes") or {}
-    el_id = attrs.get("id")
-    if el_id:
-        return f"#{el_id}"
-    data_test = attrs.get("data-test")
-    if data_test:
-        return f'[data-test="{data_test}"]'
-    name = attrs.get("name")
-    if name:
-        return f'[name="{name}"]'
-    css_sel = meta.get("css_selector")
-    if css_sel:
-        return css_sel
-    xpath = meta.get("xpath")
-    if xpath:
-        # Playwright acepta prefijo xpath=
+    if el_id := attrs.get("id"): return f"#{el_id}"
+    if data_test := attrs.get("data-test"): return f'[data-test="{data_test}"]'
+    if name := attrs.get("name"): return f'[name="{name}"]'
+    if css_sel := meta.get("css_selector"): return css_sel
+    if xpath := meta.get("xpath"):
         return f"xpath=/{xpath}" if not xpath.startswith("/") else f"xpath={xpath}"
     return None
 
 def flatten_nested_params_for_native(name: str, params: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Para acciones nativas como go_to_url, si vienen anidadas bajo 'go_to_url': {...}
-    devuelve {'url':..., 'new_tab':...}
-    """
-    if not isinstance(params, dict):
-        return {}
+    if not isinstance(params, dict): return {}
     nested = params.get(name)
-    if isinstance(nested, dict):
-        base = {k: v for k, v in nested.items() if v is not None}
-    else:
-        base = {}
-    # Copia claves útiles si están al tope
+    base = {k: v for k, v in nested.items() if v is not None} if isinstance(nested, dict) else {}
     for k in ("url", "new_tab", "delay", "timeout"):
         if k in params and params[k] is not None and k not in base:
             base[k] = params[k]
@@ -85,7 +57,6 @@ controller = Controller()
 
 @controller.action("det_fill_by_selector")
 async def det_fill_by_selector(selector: str, text: str, page: Page) -> ActionResult:
-    # Espera visibilidad por si la página tarda
     await page.locator(selector).wait_for(state="visible", timeout=15000)
     await page.locator(selector).fill(text)
     return ActionResult(extracted_content=f"Filled {selector}")
@@ -96,135 +67,123 @@ async def det_click_by_selector(selector: str, page: Page) -> ActionResult:
     await page.locator(selector).click()
     return ActionResult(extracted_content=f"Clicked {selector}")
 
+@controller.action("det_search_and_submit")
+async def det_search_and_submit(selector: str, text: str, page: Page) -> ActionResult:
+    """Rellena un campo, presiona Enter y espera a que la página cargue."""
+    await page.locator(selector).wait_for(state="visible", timeout=15000)
+    await page.locator(selector).fill(text)
+    await page.press(selector, "Enter")
+    await page.wait_for_load_state("domcontentloaded", timeout=15000)
+    return ActionResult(extracted_content=f"Searched for '{text}' in {selector}")
+
 # -------------------- main --------------------
 async def main():
     parser = argparse.ArgumentParser(description="Reproduce steps.json usando selectores estables.")
-    parser.add_argument("-o", "--override", nargs="*", help="Sobrescribir variables: -o USER=foo PASS=bar BASE_URL=https://...")
+    parser.add_argument("filename", nargs="?", default="steps", help="Nombre base de los archivos a reproducir (ej: 'login').")
+    parser.add_argument("-o", "--override", nargs="*", help="Sobrescribir variables: -o USER=foo PASS=bar")
     args = parser.parse_args()
 
-    steps = json.load(open("steps.json", "r", encoding="utf-8"))
+    input_file = f"{args.filename}.json"
+    meta_file = f"{args.filename}.meta.json"
 
-    # Variables desde .env y/o CLI
+    steps = json.load(open(input_file, "r", encoding="utf-8"))
+    try:
+        meta = json.load(open(meta_file, "r", encoding="utf-8"))
+        task = meta.get("task", "(replay deterministic via selectors)")
+    except FileNotFoundError:
+        task = "(replay deterministic; no meta file found)"
+
     load_dotenv()
-    cli = {}
-    if args.override:
-        for kv in args.override:
-            if "=" in kv:
-                k, v = kv.split("=", 1)
-                cli[k] = v
-
+    cli_vars = {kv.split("=", 1)[0]: kv.split("=", 1)[1] for kv in args.override or [] if "=" in kv}
     needed = collect_needed_vars(steps)
-    variables: Dict[str, str] = {}
-    for var in needed:
-        variables[var] = cli.get(var) or os.getenv(var) or input(f"Ingrese valor para {var}: ")
+    variables = {var: cli_vars.get(var) or os.getenv(var) or input(f"Ingrese valor para {var}: ") for var in needed}
 
-    # Inicializa Agent con nuestro controller (no usamos el LLM para decidir acciones)
     llm = ChatGoogle(model="gemini-2.5-pro", temperature=0)
-    agent = Agent(task="(replay deterministic via selectors)", llm=llm, controller=controller)
+    agent = Agent(task=task, llm=llm, controller=controller)
 
     try:
-        # Inicializa browser_session rápido (sin ejecutar pasos del modelo)
         await agent.run(max_steps=0)
+        
+        step_iterator = iter(enumerate(steps, 1))
+        for i, step in step_iterator:
+            name = step.get("name")
+            if not name:
+                print(f"⏭️  [{i}/{len(steps)}] Paso inválido, omitiendo.")
+                continue
 
-        # Recorre pasos
-        for i, step in enumerate(steps, 1):
-            if not isinstance(step, dict) or "name" not in step:
-                raise ValueError(f"Paso {i} inválido: {step}")
-
-            name = step["name"]
             raw_params = step.get("params", {}) or {}
+            
+            # --- Lógica de Replay Inteligente ---
+
+            # Patrón de Búsqueda: input_text seguido de clics
+            if name == "input_text":
+                interacted = raw_params.get("interacted_element") or {}
+                selector = derive_selector_from_meta(interacted)
+                attrs = interacted.get("attributes", {})
+                is_search = "search" in selector.lower() or attrs.get("type") == "search" or "search" in (attrs.get("name") or "")
+
+                if is_search and selector:
+                    text = raw_params.get("input_text", {}).get("text") or raw_params.get("text")
+                    print(f"▶️  [{i}/{len(steps)}] Patrón de búsqueda detectado. Ejecutando: det_search_and_submit")
+                    await agent.controller.registry.execute_action(
+                        "det_search_and_submit",
+                        {"selector": selector, "text": replace_vars(text, variables)},
+                        browser_session=agent.browser_session
+                    )
+                    # Omitir los siguientes 2 pasos (clics en botón y sugerencia)
+                    print(f"⏭️  Omitiendo los siguientes 2 pasos de clic redundantes.")
+                    next(step_iterator, None); next(step_iterator, None)
+                    continue
+
+            # --- Manejo de Pasos Individuales ---
 
             if name == "done":
-                print(f"⏭️  [{i}/{len(steps)}] omitido 'done'")
+                final_text = (raw_params.get("done", {}).get("text", ""))
+                if final_text:
+                    print("\n✅ Tarea completada. Resultado final:")
+                    print("--------------------------------------------------")
+                    print(final_text)
+                    print("--------------------------------------------------")
+                else:
+                    print(f"⏭️  [{i}/{len(steps)}] 'done'")
                 continue
 
-            # Caso 1: go_to_url (nativo, pero con params planos)
-            if name == "go_to_url":
-                params = flatten_nested_params_for_native(name, raw_params)
-                params = replace_vars(params, variables)
-                print(f"▶️  [{i}/{len(steps)}] go_to_url({params})")
-                await agent.controller.registry.execute_action(
-                    "go_to_url", params, browser_session=agent.browser_session
-                )
-                continue
-
-            # Caso 2: input_text -> det_fill_by_selector
-            if name == "input_text":
-                inner = raw_params.get("input_text") or {}
-                text = inner.get("text") or raw_params.get("text")  # por si viene al tope
+            if name in ("input_text", "click_element_by_index"):
+                action_map = {"input_text": "det_fill_by_selector", "click_element_by_index": "det_click_by_selector"}
                 interacted = raw_params.get("interacted_element") or {}
                 selector = derive_selector_from_meta(interacted)
-
                 if not selector:
-                    # fallback: intenta por índice, no recomendado
-                    idx = inner.get("index") or raw_params.get("index")
-                    if idx is not None:
-                        print(f"⚠️  [{i}/{len(steps)}] sin selector; intento índice input_text(index={idx})")
-                        await agent.controller.registry.execute_action(
-                            "input_text",
-                            {"index": idx, "text": replace_vars(text, variables)},
-                            browser_session=agent.browser_session
-                        )
-                        continue
-                    else:
-                        raise RuntimeError(f"Paso {i}: no hay selector ni índice para input_text")
+                    print(f"❌  [{i}/{len(steps)}] No se pudo derivar un selector para {name}. Omitiendo.")
+                    continue
+                
+                params = {"selector": selector}
+                if name == "input_text":
+                    params["text"] = raw_params.get("input_text", {}).get("text") or raw_params.get("text")
 
-                params = {"selector": replace_vars(selector, variables), "text": replace_vars(text, variables)}
-                print(f"▶️  [{i}/{len(steps)}] det_fill_by_selector({params})")
+                print(f"▶️  [{i}/{len(steps)}] {action_map[name]}({params})")
                 await agent.controller.registry.execute_action(
-                    "det_fill_by_selector", params, browser_session=agent.browser_session
+                    action_map[name], replace_vars(params, variables), browser_session=agent.browser_session
                 )
                 continue
 
-            # Caso 3: click_element_by_index -> det_click_by_selector
-            if name == "click_element_by_index":
-                inner = raw_params.get("click_element_by_index") or {}
-                interacted = raw_params.get("interacted_element") or {}
-                selector = derive_selector_from_meta(interacted)
-
-                if not selector:
-                    idx = inner.get("index") or raw_params.get("index")
-                    if idx is not None:
-                        print(f"⚠️  [{i}/{len(steps)}] sin selector; intento índice click_element_by_index(index={idx})")
-                        await agent.controller.registry.execute_action(
-                            "click_element_by_index",
-                            {"index": idx},
-                            browser_session=agent.browser_session
-                        )
-                        continue
-                    else:
-                        raise RuntimeError(f"Paso {i}: no hay selector ni índice para click")
-
-                params = {"selector": replace_vars(selector, variables)}
-                print(f"▶️  [{i}/{len(steps)}] det_click_by_selector({params})")
-                await agent.controller.registry.execute_action(
-                    "det_click_by_selector", params, browser_session=agent.browser_session
-                )
-                continue
-
-            # Si aparece otra acción, intenta replay nativo con params tal cual
-            print(f"ℹ️  [{i}/{len(steps)}] acción no mapeada '{name}', intento directo")
-            # Aplanar los parámetros para acciones nativas que vienen anidadas
+            # --- Fallback para otras acciones ---
+            
             params = flatten_nested_params_for_native(name, raw_params)
-            await agent.controller.registry.execute_action(
-                name, replace_vars(params, variables), browser_session=agent.browser_session
-            )
+            print(f"▶️  [{i}/{len(steps)}] {name}({params})")
+            try:
+                await agent.controller.registry.execute_action(
+                    name, replace_vars(params, variables), browser_session=agent.browser_session
+                )
+            except Exception as e:
+                print(f"❌  [{i}/{len(steps)}] Falló el intento directo para '{name}': {e}")
 
-        print("✅ Replay completado (selectores).")
+        print("\n✅ Replay completado.")
 
     finally:
-        # Cierre limpio del navegador/session incluso si algo falla
+        # Cierre limpio del navegador
         try:
-            if getattr(agent, "browser_session", None):
-                if hasattr(agent.browser_session, "stop"):
-                    await agent.browser_session.stop()  # API 0.5.x
-                else:
-                    ctx = getattr(agent.browser_session, "context", None) or getattr(agent.browser_session, "playwright_context", None)
-                    if ctx:
-                        await ctx.close()
-                    pw_browser = getattr(agent.browser_session, "playwright_browser", None) or getattr(agent.browser_session, "browser", None)
-                    if pw_browser:
-                        await pw_browser.close()
+            if getattr(agent, "browser_session", None) and hasattr(agent.browser_session, "stop"):
+                await agent.browser_session.stop()
         except Exception as e:
             print(f"⚠️ No se pudo cerrar el navegador limpiamente: {e}")
 
