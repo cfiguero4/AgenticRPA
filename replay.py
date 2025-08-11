@@ -172,6 +172,11 @@ async def main(cli_args=None, return_result=False):
                 continue
 
             # --- Fallback para otras acciones ---
+
+            # Omitir acciones que modifican archivos o dependen de un LLM en modo replay
+            if name in ("extract_structured_data", "write_file", "replace_file_str"):
+                print(f"⏭️  [{i}/{len(steps)}] Omitiendo acción no interactiva: {name}")
+                continue
             
             params = flatten_nested_params_for_native(name, raw_params)
             print(f"▶️  [{i}/{len(steps)}] {name}({params})")

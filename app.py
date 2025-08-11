@@ -13,7 +13,6 @@ from replay import run_replay_task, collect_needed_vars
 
 # --- Configuración y Lógica de Backend ---
 
-# Obtener la ruta absoluta del directorio del script para construir rutas robustas
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKFLOWS_DIR = os.path.join(SCRIPT_DIR, "workflows")
 os.makedirs(WORKFLOWS_DIR, exist_ok=True)
@@ -27,12 +26,22 @@ def actualizar_lista_flujos():
     except FileNotFoundError:
         return gr.update(choices=[])
 
-def run_async_in_thread(coro, queue):
-    """Ejecuta un coroutine en un hilo y pone el resultado en una cola."""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    result = loop.run_until_complete(coro)
-    queue.put(result)
+def run_async_in_thread(coro):
+    """
+    Ejecuta una corutina en un nuevo hilo con su propio bucle de eventos
+    y devuelve el resultado.
+    """
+    result_queue = Queue()
+    def run_loop():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(coro)
+        result_queue.put(result)
+    
+    thread = Thread(target=run_loop)
+    thread.start()
+    thread.join()
+    return result_queue.get()
 
 def aprender_flujo_wrapper(prompt, nombre_archivo):
     """Wrapper con generador para ejecutar learn.py y mostrar estado."""
@@ -43,19 +52,10 @@ def aprender_flujo_wrapper(prompt, nombre_archivo):
     base_filename = re.sub(r'[^\w\-. ]', '', nombre_archivo)
     filepath = os.path.join(WORKFLOWS_DIR, base_filename)
     
-    yield "Grabando flujo... Esto puede tardar unos minutos.", ""
+    yield "Grabando flujo... Esto puede tardar varios minutos.", ""
     
-    queue = Queue()
     coro = run_learn_task(prompt, filepath)
-    thread = Thread(target=run_async_in_thread, args=(coro, queue))
-    thread.start()
-
-    while thread.is_alive():
-        yield "Grabando flujo... (en progreso)", ""
-        time.sleep(1)
-    
-    thread.join()
-    meta_filepath, result_text = queue.get()
+    meta_filepath, result_text = run_async_in_thread(coro)
     
     yield f"Flujo '{base_filename}' grabado.", result_text
 
@@ -69,19 +69,10 @@ def ejecutar_flujo_wrapper(nombre_flujo, placeholders_list, *values):
     
     yield "Ejecutando flujo..."
     
-    queue = Queue()
-    # CORRECCIÓN: Asegurarse de que la ruta completa se pasa a la función de replay
     filepath = os.path.join(WORKFLOWS_DIR, nombre_flujo)
     coro = run_replay_task(filepath, overrides)
-    thread = Thread(target=run_async_in_thread, args=(coro, queue))
-    thread.start()
-
-    while thread.is_alive():
-        yield "Ejecutando flujo... (en progreso)"
-        time.sleep(1)
-        
-    thread.join()
-    result_text = queue.get()
+    result_text = run_async_in_thread(coro)
+    
     yield result_text
 
 # --- Interfaz de Gradio ---
