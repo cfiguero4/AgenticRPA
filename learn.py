@@ -140,6 +140,38 @@ async def main(args: argparse.Namespace):
     print(f"✅ Grabado {len(steps)} acciones en {output_file}")
     print(f"ℹ️  Metadatos en {meta_file}")
 
+async def run_learn_task(prompt: str, output_file: str, model: str = "gemini-2.5-pro", temperature: float = 0.7, env_keys: list = None):
+    """
+    Función programática para ejecutar una tarea de aprendizaje.
+    Devuelve la ruta del archivo de metadatos y el resultado extraído.
+    """
+    if env_keys is None:
+        env_keys = ["USER", "PASS", "BASE_URL"]
+    
+    # Simula el objeto de argumentos de argparse
+    args = argparse.Namespace(
+        prompt=prompt,
+        output_file=output_file,
+        model=model,
+        temperature=temperature,
+        env_keys=env_keys
+    )
+    await main(args)
+    
+    # Después de ejecutar, lee el resultado del archivo meta
+    meta_filepath = f"{output_file}.meta.json"
+    try:
+        with open(meta_filepath, "r", encoding="utf-8") as f:
+            meta_data = json.load(f)
+        # Busca la acción 'done' en los datos 'raw' para encontrar el texto final
+        done_action = next((action for action in meta_data.get("raw", []) if "done" in action), None)
+        if done_action:
+            return meta_filepath, done_action.get("done", {}).get("text", "No se encontró texto extraído.")
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    return meta_filepath, "No se pudo leer el resultado del archivo de metadatos."
+
+
 if __name__ == "__main__":
     # --- Configuración de Argumentos de Línea de Comandos ---
     parser = argparse.ArgumentParser(

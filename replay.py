@@ -77,11 +77,14 @@ async def det_search_and_submit(selector: str, text: str, page: Page) -> ActionR
     return ActionResult(extracted_content=f"Searched for '{text}' in {selector}")
 
 # -------------------- main --------------------
-async def main():
-    parser = argparse.ArgumentParser(description="Reproduce steps.json usando selectores estables.")
-    parser.add_argument("filename", nargs="?", default="steps", help="Nombre base de los archivos a reproducir (ej: 'login').")
-    parser.add_argument("-o", "--override", nargs="*", help="Sobrescribir variables: -o USER=foo PASS=bar")
-    args = parser.parse_args()
+async def main(cli_args=None, return_result=False):
+    if cli_args:
+        args = cli_args
+    else:
+        parser = argparse.ArgumentParser(description="Reproduce steps.json usando selectores estables.")
+        parser.add_argument("filename", nargs="?", default="steps", help="Nombre base de los archivos a reproducir (ej: 'login').")
+        parser.add_argument("-o", "--override", nargs="*", help="Sobrescribir variables: -o USER=foo PASS=bar")
+        args = parser.parse_args()
 
     input_file = f"{args.filename}.json"
     meta_file = f"{args.filename}.meta.json"
@@ -144,6 +147,8 @@ async def main():
                     print("--------------------------------------------------")
                     print(final_text)
                     print("--------------------------------------------------")
+                    if return_result:
+                        return final_text
                 else:
                     print(f"⏭️  [{i}/{len(steps)}] 'done'")
                 continue
@@ -186,6 +191,25 @@ async def main():
                 await agent.browser_session.stop()
         except Exception as e:
             print(f"⚠️ No se pudo cerrar el navegador limpiamente: {e}")
+    
+    if return_result:
+        return "Replay completado, pero no se encontró texto extraído en la acción 'done'."
+
+async def run_replay_task(filename: str, overrides: dict = None):
+    """
+    Función programática para ejecutar una tarea de replay.
+    Devuelve el resultado final extraído.
+    """
+    # Simula el objeto de argumentos de argparse
+    override_list = [f"{k}={v}" for k, v in (overrides or {}).items()]
+    
+    # CORRECCIÓN: Usar la ruta completa del archivo sin la extensión.
+    filepath_no_ext = os.path.splitext(filename)[0]
+    args = argparse.Namespace(filename=filepath_no_ext, override=override_list)
+    
+    # Llama a la lógica principal y captura el resultado
+    final_text = await main(args, return_result=True)
+    return final_text
 
 if __name__ == "__main__":
     asyncio.run(main())
