@@ -1,16 +1,20 @@
-# learn.py — Grabar pasos con parámetros correctos para replay.py
-import sys, logging
-# Fuerza UTF-8 en stdout/stderr
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")
-    sys.stderr.reconfigure(encoding="utf-8")
-import asyncio, json, os
+# learn.py — Grabar pasos de una tarea de automatización web de forma genérica.
+import sys
+import asyncio
+import json
+import os
+import argparse
 from typing import Any, Dict, List
 
 from dotenv import load_dotenv
 from pyobjtojson import obj_to_json
 from browser_use import Agent
 from browser_use.llm import ChatGoogle
+
+# Fuerza UTF-8 en stdout/stderr para compatibilidad
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
 
 load_dotenv()
 
@@ -21,7 +25,7 @@ RESERVED_KEYS = {
     "success", "error", "message", "result", "status", "duration",
 }
 
-LIKELY_PARAM_KEYS = {  # por si quieres priorizar estos
+LIKELY_PARAM_KEYS = {
     "url", "index", "text", "value", "selector", "role", "name",
     "x", "y", "keys", "delay", "timeout",
 }
@@ -38,7 +42,6 @@ def normalize_actions(raw_json: List[Dict[str, Any]], action_names: List[str]) -
             out.append({"name": "unknown", "params": {}})
             continue
 
-        # Nombre (de varias claves) o fallback por índice
         name = (
             a.get("name")
             or a.get("action")
@@ -49,7 +52,6 @@ def normalize_actions(raw_json: List[Dict[str, Any]], action_names: List[str]) -
             name = action_names[i]
         name = (name or "unknown")
 
-        # Params: prioriza 'params'/'arguments' si existen
         params = (
             a.get("params")
             or a.get("arguments")
@@ -59,11 +61,8 @@ def normalize_actions(raw_json: List[Dict[str, Any]], action_names: List[str]) -
         if not isinstance(params, dict):
             params = {}
 
-        # Si está vacío, toma campos útiles del nivel superior
         if not params:
-            # primero intenta tomar llaves "reconocibles"
             extracted = {k: v for k, v in a.items() if k in LIKELY_PARAM_KEYS}
-            # si aún queda vacío, toma todo menos reservados/metadatos
             if not extracted:
                 extracted = {k: v for k, v in a.items() if k not in RESERVED_KEYS}
             params = extracted or {}
@@ -71,8 +70,7 @@ def normalize_actions(raw_json: List[Dict[str, Any]], action_names: List[str]) -
         out.append({"name": name, "params": params})
     return out
 
-
-def replace_env_placeholders(steps: List[Dict[str, Any]], keys=("USER", "PASS", "BASE_URL")):
+def replace_env_placeholders(steps: List[Dict[str, Any]], keys: List[str]) -> List[Dict[str, Any]]:
     """
     Reemplaza valores exactos de .env por {{PLACEHOLDER}} en params (strings).
     """
@@ -96,42 +94,105 @@ def replace_env_placeholders(steps: List[Dict[str, Any]], keys=("USER", "PASS", 
 
 # ---------------- main ----------------
 
-async def main():
-    USER = os.getenv("USER", "standard_user")
-    PASS = os.getenv("PASS", "secret_sauce")
-    BASE_URL = os.getenv("BASE_URL", "https://www.saucedemo.com/")
+async def main(args: argparse.Namespace):
+    """
+    Función principal que ejecuta el agente y guarda los resultados.
+    """
+    print(f"▶️  Iniciando tarea: {args.prompt}")
+    print(f"▶️  Modelo: {args.model}, Temperatura: {args.temperature}")
 
-    task = f"Inicia sesión en {BASE_URL} con usuario={USER} y password={PASS}. Confirma inventario."
-    llm = ChatGoogle(model="gemini-2.5-pro", temperature=0.7)
+    # 1. Configurar y ejecutar el agente
+    llm = ChatGoogle(model=args.model, temperature=args.temperature)
+    agent = Agent(task=args.prompt, llm=llm)
+    history = await agent.run()
 
-    agent = Agent(task=task, llm=llm)
-    history = await agent.run()  # AgentHistoryList
-
-    # 1) Serializa acciones (Pydantic -> dict)
+    # 2. Procesar el historial de acciones
     raw_actions = history.model_actions()
     raw_json = obj_to_json(raw_actions, check_circular=False)
-
-    # 2) Nombres canónicos (por índice)
-    action_names = history.action_names()  # ['go_to_url', 'input_text', ...]
-
-    # 3) Normaliza a [{name, params}] con extracción de campos top-level
+    action_names = history.action_names()
     steps = normalize_actions(raw_json, action_names)
+    
+    # 3. Reemplazar secretos con placeholders
+    if args.env_keys:
+        print(f"▶️  Reemplazando placeholders para: {args.env_keys}")
+        steps = replace_env_placeholders(steps, keys=args.env_keys)
 
-    # 4) Parametriza con .env -> {{PLACEHOLDER}}
-    steps = replace_env_placeholders(steps)
+    # 4. Guardar los artefactos de salida
+    output_file = f"{args.output_file}.json"
+    meta_file = f"{args.output_file}.meta.json"
 
-    # 5) Guarda
-    with open("steps.json", "w", encoding="utf-8") as f:
+    with open(output_file, "w", encoding="utf-8") as f:
         json.dump(steps, f, indent=2, ensure_ascii=False)
 
-    with open("steps.meta.json", "w", encoding="utf-8") as f:
+    with open(meta_file, "w", encoding="utf-8") as f:
         json.dump(
-            {"visited_urls": history.urls(), "action_names": action_names, "raw": raw_json},
+            {
+                "prompt": args.prompt,
+                "model": args.model,
+                "temperature": args.temperature,
+                "visited_urls": history.urls(),
+                "action_names": action_names,
+                "raw": raw_json,
+            },
             f, indent=2, ensure_ascii=False
         )
 
-    print(f"✅ Grabado {len(steps)} acciones en steps.json")
-    print("ℹ️  Metadatos en steps.meta.json (incluye 'raw' para debug)")
+    print(f"✅ Grabado {len(steps)} acciones en {output_file}")
+    print(f"ℹ️  Metadatos en {meta_file}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # --- Configuración de Argumentos de Línea de Comandos ---
+    parser = argparse.ArgumentParser(
+        description="Graba una sesión de automatización web a partir de un prompt.",
+        formatter_class=argparse.RawTextHelpFormatter,
+        epilog="""
+Ejemplos de uso:
+-----------------
+1. Tarea simple (salida por defecto 'steps.json'):
+   python learn.py "Ve a google.com y busca 'Python argparse'"
+
+2. Tarea con nombre de archivo de salida personalizado:
+   python learn.py "Ve a wikipedia.org y busca 'Refactorización'" -o wiki_refactor
+
+3. Tarea que usa variables de entorno y las reemplaza por placeholders:
+   # (Asegúrate de que USER y PASS estén en tu .env)
+   python learn.py "Inicia sesión en mi-sitio.com con usuario {{USER}} y clave {{PASS}}" \\
+   -o login_test --env-keys USER PASS
+
+4. Usando un modelo y temperatura diferentes:
+   python learn.py "Escribe un poema sobre código" --model gemini-1.5-pro --temperature 0.9
+"""
+    )
+
+    # Argumentos para controlar la ejecución
+    parser.add_argument(
+        "prompt",
+        help="La tarea o prompt a ejecutar por el agente."
+    )
+    parser.add_argument(
+        "-o", "--output-file",
+        default="steps",
+        help="Nombre base para los archivos de salida (sin extensión). Por defecto: 'steps'."
+    )
+    parser.add_argument(
+        "--env-keys",
+        nargs='*',
+        default=["USER", "PASS", "BASE_URL"],
+        help="Lista de claves de .env a reemplazar por placeholders. Por defecto: USER PASS BASE_URL."
+    )
+
+    # Argumentos para controlar el modelo LLM
+    parser.add_argument(
+        "--model",
+        default="gemini-2.5-pro",
+        help="El modelo de LLM a utilizar. Por defecto: 'gemini-2.5-pro'."
+    )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=0.7,
+        help="La temperatura para la generación del LLM. Por defecto: 0.7."
+    )
+
+    args = parser.parse_args()
+    asyncio.run(main(args))

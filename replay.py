@@ -204,8 +204,10 @@ async def main():
 
             # Si aparece otra acción, intenta replay nativo con params tal cual
             print(f"ℹ️  [{i}/{len(steps)}] acción no mapeada '{name}', intento directo")
+            # Aplanar los parámetros para acciones nativas que vienen anidadas
+            params = flatten_nested_params_for_native(name, raw_params)
             await agent.controller.registry.execute_action(
-                name, replace_vars(raw_params, variables), browser_session=agent.browser_session
+                name, replace_vars(params, variables), browser_session=agent.browser_session
             )
 
         print("✅ Replay completado (selectores).")
