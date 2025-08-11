@@ -1,0 +1,8 @@
+# Core
+browser-use>=0.2.0
+playwright>=1.45.0
+python-dotenv>=1.0.1
+
+# Opcional (logs bonitos, útil al depurar)
+rich>=13.7.1
+pyobjtojson
