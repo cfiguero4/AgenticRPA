@@ -78,7 +78,7 @@ def ejecutar_flujo_wrapper(nombre_flujo, placeholders_list, *values):
 # --- Interfaz de Gradio ---
 
 with gr.Blocks(theme=gr.themes.Soft()) as demo:
-    gr.Markdown("# Panel de Control de Automatización")
+    gr.Markdown("# Agentic RPA (ARPA)")
 
     with gr.Tab("Aprender Flujo"):
         gr.Markdown("## Grabar un Nuevo Flujo de Trabajo")
