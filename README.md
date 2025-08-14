@@ -66,7 +66,7 @@ cd arpa
 python -m venv venv
 
 # Activar en Windows
-venv\Scripts\activate
+source venv/Scripts/activate
 
 # Activar en macOS/Linux
 source venv/bin/activate
