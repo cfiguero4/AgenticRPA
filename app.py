@@ -21,7 +21,7 @@ def actualizar_lista_flujos():
     """Escanea el directorio y devuelve un objeto Dropdown actualizado para la UI."""
     try:
         files = [f for f in os.listdir(WORKFLOWS_DIR) if f.endswith(".meta.json")]
-        choices = sorted([os.path.splitext(f)[0] for f in files])
+        choices = sorted([f.replace(".meta.json", "") for f in files])
         return gr.update(choices=choices)
     except FileNotFoundError:
         return gr.update(choices=[])

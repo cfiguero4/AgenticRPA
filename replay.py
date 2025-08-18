@@ -92,9 +92,9 @@ async def main(cli_args=None, return_result=False):
     steps = json.load(open(input_file, "r", encoding="utf-8"))
     try:
         meta = json.load(open(meta_file, "r", encoding="utf-8"))
-        task = meta.get("task", "(replay deterministic via selectors)")
+        task = meta.get("task", "Replay task from meta file")
     except FileNotFoundError:
-        task = "(replay deterministic; no meta file found)"
+        task = "Replay task from file"
 
     load_dotenv()
     cli_vars = {kv.split("=", 1)[0]: kv.split("=", 1)[1] for kv in args.override or [] if "=" in kv}
@@ -105,7 +105,10 @@ async def main(cli_args=None, return_result=False):
     agent = Agent(task=task, llm=llm, controller=controller)
 
     try:
-        await agent.run(max_steps=0)
+        # En modo replay, no ejecutamos el agente con LLM. Solo iniciamos el navegador.
+        # La llamada agent.run(max_steps=0) ya no funciona como antes en nuevas versiones.
+        await agent.browser_session.start()
+        print("ℹ️  Sesión de navegador iniciada para replay.")
         
         step_iterator = iter(enumerate(steps, 1))
         for i, step in step_iterator:
@@ -208,9 +211,9 @@ async def run_replay_task(filename: str, overrides: dict = None):
     # Simula el objeto de argumentos de argparse
     override_list = [f"{k}={v}" for k, v in (overrides or {}).items()]
     
-    # CORRECCIÓN: Usar la ruta completa del archivo sin la extensión.
-    filepath_no_ext = os.path.splitext(filename)[0]
-    args = argparse.Namespace(filename=filepath_no_ext, override=override_list)
+    # El llamador (app.py) ya proporciona la ruta base correcta sin extensión.
+    # No es necesario procesar `filename` aquí.
+    args = argparse.Namespace(filename=filename, override=override_list)
     
     # Llama a la lógica principal y captura el resultado
     final_text = await main(args, return_result=True)
