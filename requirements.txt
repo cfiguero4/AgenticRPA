@@ -7,3 +7,5 @@ gradio
 # Opcional (logs bonitos, útil al depurar)
 rich>=13.7.1
 pyobjtojson
+fpdf2
+pandas

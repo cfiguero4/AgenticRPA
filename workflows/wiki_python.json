@@ -41,12 +41,12 @@
           "aria-label": "Buscar en Wikipedia",
           "autocapitalize": "sentences",
           "spellcheck": "false",
-          "title": "Buscar en este wiki [alt-shift-f]",
+          "title": "Buscar en este wiki [alt-f]",
           "accesskey": "f",
           "id": "searchInput"
         },
         "shadow_root": false,
-        "css_selector": "html > body > div:nth-of-type(1) > header > div:nth-of-type(2) > div > div > div > form > div > div > input.cdx-text-input__input.mw-searchInput[autocomplete=\"off\"][type=\"search\"][name=\"search\"][placeholder=\"Buscar en Wikipedia\"][aria-label=\"Buscar en Wikipedia\"][title=\"Buscar en este wiki [alt-shift-f]\"][id=\"searchInput\"]",
+        "css_selector": "html > body > div:nth-of-type(1) > header > div:nth-of-type(2) > div > div > div > form > div > div > input.cdx-text-input__input.mw-searchInput[autocomplete=\"off\"][type=\"search\"][name=\"search\"][placeholder=\"Buscar en Wikipedia\"][aria-label=\"Buscar en Wikipedia\"][title=\"Buscar en este wiki [alt-f]\"][id=\"searchInput\"]",
         "page_coordinates": null,
         "viewport_coordinates": null,
         "viewport_info": null
@@ -128,7 +128,7 @@
     "name": "extract_structured_data",
     "params": {
       "extract_structured_data": {
-        "query": "el primer párrafo del artículo sobre Python",
+        "query": "Extrae los primeros dos párrafos del artículo de la página actual.",
         "extract_links": false
       },
       "interacted_element": null
@@ -138,7 +138,7 @@
     "name": "done",
     "params": {
       "done": {
-        "text": "He extraído el primer párrafo del artículo de Wikipedia sobre Python: \n\n'Python es un lenguaje de alto nivel de programación interpretado cuya filosofía hace hincapié en la legibilidad de su código. Se trata de un lenguaje de programación multiparadigma, ya que soporta parcialmente la orientación a objetos, programación imperativa y, en menor medida, programación funcional. Es un lenguaje interpretado, dinámico y multiplataforma.'",
+        "text": "Python es un lenguaje de alto nivel de programación interpretado cuya filosofía hace hincapié en la legibilidad de su código. Se trata de un lenguaje de programación multiparadigma, ya que soporta parcialmente la orientación a objetos, programación imperativa y, en menor medida, programación funcional. Es un lenguaje interpretado, dinámico y multiplataforma.\n\nAdministrado por Python Software Foundation, posee una licencia de código abierto, denominada Python Software Foundation License. Python se clasifica constantemente como uno de los lenguajes de programación más populares, siendo ya en 2025 el más popular y además con una amplia diferencia récord histórico de más de 15 puntos porcentuales sobre el siguiente.",
         "success": true,
         "files_to_display": []
       },

@@ -1,0 +1,426 @@
+{
+  "prompt": "ve a https://www.saucedemo.com/ user standard_user pass secret_sauce luego añade al carro de compras Sauce Labs Backpack. luego ve al carrito de compras . haz checkout de ese producto. rellena first name last name y zip/postal code con datos random luego presiona continuar y presiona finish. ",
+  "model": "gemini-2.5-pro",
+  "temperature": 0.7,
+  "visited_urls": [
+    "about:blank",
+    "https://www.saucedemo.com/",
+    "https://www.saucedemo.com/inventory.html",
+    "https://www.saucedemo.com/inventory.html",
+    "https://www.saucedemo.com/cart.html",
+    "https://www.saucedemo.com/checkout-step-one.html",
+    "https://www.saucedemo.com/checkout-step-two.html",
+    "https://www.saucedemo.com/checkout-complete.html"
+  ],
+  "action_names": [
+    "go_to_url",
+    "input_text",
+    "input_text",
+    "click_element_by_index",
+    "click_element_by_index",
+    "click_element_by_index",
+    "click_element_by_index",
+    "input_text",
+    "input_text",
+    "input_text",
+    "click_element_by_index",
+    "click_element_by_index",
+    "done"
+  ],
+  "raw": [
+    {
+      "go_to_url": {
+        "url": "https://www.saucedemo.com/",
+        "new_tab": false
+      },
+      "interacted_element": null
+    },
+    {
+      "input_text": {
+        "index": 1,
+        "text": "standard_user"
+      },
+      "interacted_element": {
+        "tag_name": "input",
+        "xpath": "html/body/div[1]/div/div[2]/div[1]/div/div/form/div[1]/input",
+        "highlight_index": 1,
+        "entire_parent_branch_path": [
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "form",
+          "div",
+          "input"
+        ],
+        "attributes": {
+          "class": "input_error form_input",
+          "placeholder": "Username",
+          "type": "text",
+          "data-test": "username",
+          "id": "user-name",
+          "name": "user-name",
+          "autocorrect": "off",
+          "autocapitalize": "none",
+          "value": ""
+        },
+        "shadow_root": false,
+        "css_selector": "html > body > div:nth-of-type(1) > div > div:nth-of-type(2) > div:nth-of-type(1) > div > div > form > div:nth-of-type(1) > input.input_error.form_input[placeholder=\"Username\"][type=\"text\"][id=\"user-name\"][name=\"user-name\"]",
+        "page_coordinates": null,
+        "viewport_coordinates": null,
+        "viewport_info": null
+      }
+    },
+    {
+      "input_text": {
+        "index": 2,
+        "text": "secret_sauce"
+      },
+      "interacted_element": {
+        "tag_name": "input",
+        "xpath": "html/body/div[1]/div/div[2]/div[1]/div/div/form/div[2]/input",
+        "highlight_index": 2,
+        "entire_parent_branch_path": [
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "form",
+          "div",
+          "input"
+        ],
+        "attributes": {
+          "class": "input_error form_input",
+          "placeholder": "Password",
+          "type": "password",
+          "data-test": "password",
+          "id": "password",
+          "name": "password",
+          "autocorrect": "off",
+          "autocapitalize": "none",
+          "value": ""
+        },
+        "shadow_root": false,
+        "css_selector": "html > body > div:nth-of-type(1) > div > div:nth-of-type(2) > div:nth-of-type(1) > div > div > form > div:nth-of-type(2) > input.input_error.form_input[placeholder=\"Password\"][type=\"password\"][id=\"password\"][name=\"password\"]",
+        "page_coordinates": null,
+        "viewport_coordinates": null,
+        "viewport_info": null
+      }
+    },
+    {
+      "click_element_by_index": {
+        "index": 3
+      },
+      "interacted_element": {
+        "tag_name": "input",
+        "xpath": "html/body/div[1]/div/div[2]/div[1]/div/div/form/input",
+        "highlight_index": 3,
+        "entire_parent_branch_path": [
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "form",
+          "input"
+        ],
+        "attributes": {
+          "type": "submit",
+          "class": "submit-button btn_action",
+          "data-test": "login-button",
+          "id": "login-button",
+          "name": "login-button",
+          "value": "Login"
+        },
+        "shadow_root": false,
+        "css_selector": "html > body > div:nth-of-type(1) > div > div:nth-of-type(2) > div:nth-of-type(1) > div > div > form > input.submit-button.btn_action[type=\"submit\"][id=\"login-button\"][name=\"login-button\"]",
+        "page_coordinates": null,
+        "viewport_coordinates": null,
+        "viewport_info": null
+      }
+    },
+    {
+      "click_element_by_index": {
+        "index": 8
+      },
+      "interacted_element": {
+        "tag_name": "button",
+        "xpath": "html/body/div[1]/div/div/div[2]/div/div/div/div[1]/div[2]/div[2]/button",
+        "highlight_index": 8,
+        "entire_parent_branch_path": [
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "button"
+        ],
+        "attributes": {
+          "class": "btn btn_primary btn_small btn_inventory ",
+          "data-test": "add-to-cart-sauce-labs-backpack",
+          "id": "add-to-cart-sauce-labs-backpack",
+          "name": "add-to-cart-sauce-labs-backpack"
+        },
+        "shadow_root": false,
+        "css_selector": "html > body > div:nth-of-type(1) > div > div > div:nth-of-type(2) > div > div > div > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > button.btn.btn_primary.btn_small.btn_inventory[id=\"add-to-cart-sauce-labs-backpack\"][name=\"add-to-cart-sauce-labs-backpack\"]",
+        "page_coordinates": null,
+        "viewport_coordinates": null,
+        "viewport_info": null
+      }
+    },
+    {
+      "click_element_by_index": {
+        "index": 2
+      },
+      "interacted_element": {
+        "tag_name": "a",
+        "xpath": "html/body/div[1]/div/div/div[1]/div[1]/div[3]/a",
+        "highlight_index": 2,
+        "entire_parent_branch_path": [
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "a"
+        ],
+        "attributes": {
+          "class": "shopping_cart_link",
+          "data-test": "shopping-cart-link"
+        },
+        "shadow_root": false,
+        "css_selector": "html > body > div:nth-of-type(1) > div > div > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > a.shopping_cart_link",
+        "page_coordinates": null,
+        "viewport_coordinates": null,
+        "viewport_info": null
+      }
+    },
+    {
+      "click_element_by_index": {
+        "index": 7
+      },
+      "interacted_element": {
+        "tag_name": "button",
+        "xpath": "html/body/div[1]/div/div/div[2]/div/div[2]/button[2]",
+        "highlight_index": 7,
+        "entire_parent_branch_path": [
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "button"
+        ],
+        "attributes": {
+          "class": "btn btn_action btn_medium checkout_button ",
+          "data-test": "checkout",
+          "id": "checkout",
+          "name": "checkout"
+        },
+        "shadow_root": false,
+        "css_selector": "html > body > div:nth-of-type(1) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > button:nth-of-type(2).btn.btn_action.btn_medium.checkout_button[id=\"checkout\"][name=\"checkout\"]",
+        "page_coordinates": null,
+        "viewport_coordinates": null,
+        "viewport_info": null
+      }
+    },
+    {
+      "input_text": {
+        "index": 3,
+        "text": "John"
+      },
+      "interacted_element": {
+        "tag_name": "input",
+        "xpath": "html/body/div[1]/div/div/div[2]/div/form/div[1]/div[1]/input",
+        "highlight_index": 3,
+        "entire_parent_branch_path": [
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "form",
+          "div",
+          "div",
+          "input"
+        ],
+        "attributes": {
+          "class": "input_error form_input",
+          "placeholder": "First Name",
+          "type": "text",
+          "data-test": "firstName",
+          "id": "first-name",
+          "name": "firstName",
+          "autocorrect": "off",
+          "autocapitalize": "none",
+          "value": ""
+        },
+        "shadow_root": false,
+        "css_selector": "html > body > div:nth-of-type(1) > div > div > div:nth-of-type(2) > div > form > div:nth-of-type(1) > div:nth-of-type(1) > input.input_error.form_input[placeholder=\"First Name\"][type=\"text\"][id=\"first-name\"][name=\"firstName\"]",
+        "page_coordinates": null,
+        "viewport_coordinates": null,
+        "viewport_info": null
+      }
+    },
+    {
+      "input_text": {
+        "index": 4,
+        "text": "Doe"
+      },
+      "interacted_element": {
+        "tag_name": "input",
+        "xpath": "html/body/div[1]/div/div/div[2]/div/form/div[1]/div[2]/input",
+        "highlight_index": 4,
+        "entire_parent_branch_path": [
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "form",
+          "div",
+          "div",
+          "input"
+        ],
+        "attributes": {
+          "class": "input_error form_input",
+          "placeholder": "Last Name",
+          "type": "text",
+          "data-test": "lastName",
+          "id": "last-name",
+          "name": "lastName",
+          "autocorrect": "off",
+          "autocapitalize": "none",
+          "value": ""
+        },
+        "shadow_root": false,
+        "css_selector": "html > body > div:nth-of-type(1) > div > div > div:nth-of-type(2) > div > form > div:nth-of-type(1) > div:nth-of-type(2) > input.input_error.form_input[placeholder=\"Last Name\"][type=\"text\"][id=\"last-name\"][name=\"lastName\"]",
+        "page_coordinates": null,
+        "viewport_coordinates": null,
+        "viewport_info": null
+      }
+    },
+    {
+      "input_text": {
+        "index": 5,
+        "text": "12345"
+      },
+      "interacted_element": {
+        "tag_name": "input",
+        "xpath": "html/body/div[1]/div/div/div[2]/div/form/div[1]/div[3]/input",
+        "highlight_index": 5,
+        "entire_parent_branch_path": [
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "form",
+          "div",
+          "div",
+          "input"
+        ],
+        "attributes": {
+          "class": "input_error form_input",
+          "placeholder": "Zip/Postal Code",
+          "type": "text",
+          "data-test": "postalCode",
+          "id": "postal-code",
+          "name": "postalCode",
+          "autocorrect": "off",
+          "autocapitalize": "none",
+          "value": ""
+        },
+        "shadow_root": false,
+        "css_selector": "html > body > div:nth-of-type(1) > div > div > div:nth-of-type(2) > div > form > div:nth-of-type(1) > div:nth-of-type(3) > input.input_error.form_input[placeholder=\"Zip/Postal Code\"][type=\"text\"][id=\"postal-code\"][name=\"postalCode\"]",
+        "page_coordinates": null,
+        "viewport_coordinates": null,
+        "viewport_info": null
+      }
+    },
+    {
+      "click_element_by_index": {
+        "index": 7
+      },
+      "interacted_element": {
+        "tag_name": "input",
+        "xpath": "html/body/div[1]/div/div/div[2]/div/form/div[2]/input",
+        "highlight_index": 7,
+        "entire_parent_branch_path": [
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "form",
+          "div",
+          "input"
+        ],
+        "attributes": {
+          "type": "submit",
+          "class": "submit-button btn btn_primary cart_button btn_action",
+          "data-test": "continue",
+          "id": "continue",
+          "name": "continue",
+          "value": "Continue"
+        },
+        "shadow_root": false,
+        "css_selector": "html > body > div:nth-of-type(1) > div > div > div:nth-of-type(2) > div > form > div:nth-of-type(2) > input.submit-button.btn.btn_primary.cart_button.btn_action[type=\"submit\"][id=\"continue\"][name=\"continue\"]",
+        "page_coordinates": null,
+        "viewport_coordinates": null,
+        "viewport_info": null
+      }
+    },
+    {
+      "click_element_by_index": {
+        "index": 6
+      },
+      "interacted_element": {
+        "tag_name": "button",
+        "xpath": "html/body/div[1]/div/div/div[2]/div/div[2]/div[9]/button[2]",
+        "highlight_index": 6,
+        "entire_parent_branch_path": [
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "div",
+          "button"
+        ],
+        "attributes": {
+          "class": "btn btn_action btn_medium cart_button",
+          "data-test": "finish",
+          "id": "finish",
+          "name": "finish"
+        },
+        "shadow_root": false,
+        "css_selector": "html > body > div:nth-of-type(1) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > div:nth-of-type(9) > button:nth-of-type(2).btn.btn_action.btn_medium.cart_button[id=\"finish\"][name=\"finish\"]",
+        "page_coordinates": null,
+        "viewport_coordinates": null,
+        "viewport_info": null
+      }
+    },
+    {
+      "done": {
+        "text": "The purchase process has been completed successfully.",
+        "success": true,
+        "files_to_display": []
+      },
+      "interacted_element": null
+    }
+  ]
+}

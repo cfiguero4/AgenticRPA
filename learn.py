@@ -92,6 +92,44 @@ def replace_env_placeholders(steps: List[Dict[str, Any]], keys: List[str]) -> Li
         s["params"] = repl(s.get("params", {}))
     return steps
 
+# ---------------- Estandarización de Salida ----------------
+def _format_output(text: str) -> str:
+    """
+    Toma el texto extraído, busca de forma inteligente un bloque JSON,
+    y lo formatea en un JSON estructurado y consistente.
+    """
+    output = {"status": "success"}
+
+    # Estrategia 1: Intentar parsear el texto completo como JSON.
+    try:
+        data = json.loads(text)
+        output["data_type"] = "list" if isinstance(data, list) else "json"
+        output["content"] = data
+        return json.dumps(output, indent=2, ensure_ascii=False)
+    except json.JSONDecodeError:
+        pass  # No es JSON puro, intentar extracción.
+
+    # Estrategia 2: Extraer JSON de un bloque de código Markdown.
+    import re
+    match = re.search(r"```json\s*([\s\S]*?)\s*```", text, re.MULTILINE)
+    if match:
+        try:
+            json_str = match.group(1)
+            data = json.loads(json_str)
+            output["data_type"] = "list" if isinstance(data, list) else "json"
+            output["content"] = data
+            # Guardar también el texto original por si es útil
+            output["original_text"] = text
+            return json.dumps(output, indent=2, ensure_ascii=False)
+        except json.JSONDecodeError:
+            pass # El bloque extraído no era JSON válido.
+
+    # Estrategia 3: Fallback a texto plano.
+    output["data_type"] = "text"
+    output["content"] = text
+    return json.dumps(output, indent=2, ensure_ascii=False)
+
+
 # ---------------- main ----------------
 
 async def main(args: argparse.Namespace):
@@ -166,10 +204,14 @@ async def run_learn_task(prompt: str, output_file: str, model: str = "gemini-2.5
         # Busca la acción 'done' en los datos 'raw' para encontrar el texto final
         done_action = next((action for action in meta_data.get("raw", []) if "done" in action), None)
         if done_action:
-            return meta_filepath, done_action.get("done", {}).get("text", "No se encontró texto extraído.")
+            result_text = done_action.get("done", {}).get("text", "No se encontró texto extraído.")
+            return meta_filepath, _format_output(result_text)
     except (FileNotFoundError, json.JSONDecodeError):
         pass
-    return meta_filepath, "No se pudo leer el resultado del archivo de metadatos."
+    
+    # Si no se encuentra, devuelve un resultado formateado indicando el problema
+    not_found_text = "No se pudo leer o encontrar el resultado en el archivo de metadatos."
+    return meta_filepath, _format_output(not_found_text)
 
 
 if __name__ == "__main__":

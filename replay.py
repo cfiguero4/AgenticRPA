@@ -76,6 +76,42 @@ async def det_search_and_submit(selector: str, text: str, page: Page) -> ActionR
     await page.wait_for_load_state("domcontentloaded", timeout=15000)
     return ActionResult(extracted_content=f"Searched for '{text}' in {selector}")
 
+# -------------------- Estandarización de Salida --------------------
+def _format_output(text: str) -> str:
+    """
+    Toma el texto extraído, busca de forma inteligente un bloque JSON,
+    y lo formatea en un JSON estructurado y consistente.
+    """
+    output = {"status": "success"}
+
+    # Estrategia 1: Intentar parsear el texto completo como JSON.
+    try:
+        data = json.loads(text)
+        output["data_type"] = "list" if isinstance(data, list) else "json"
+        output["content"] = data
+        return json.dumps(output, indent=2, ensure_ascii=False)
+    except json.JSONDecodeError:
+        pass  # No es JSON puro, intentar extracción.
+
+    # Estrategia 2: Extraer JSON de un bloque de código Markdown.
+    match = re.search(r"```json\s*([\s\S]*?)\s*```", text, re.MULTILINE)
+    if match:
+        try:
+            json_str = match.group(1)
+            data = json.loads(json_str)
+            output["data_type"] = "list" if isinstance(data, list) else "json"
+            output["content"] = data
+            # Guardar también el texto original por si es útil
+            output["original_text"] = text
+            return json.dumps(output, indent=2, ensure_ascii=False)
+        except json.JSONDecodeError:
+            pass # El bloque extraído no era JSON válido.
+
+    # Estrategia 3: Fallback a texto plano.
+    output["data_type"] = "text"
+    output["content"] = text
+    return json.dumps(output, indent=2, ensure_ascii=False)
+
 # -------------------- main --------------------
 async def main(cli_args=None, return_result=False):
     if cli_args:
@@ -151,7 +187,7 @@ async def main(cli_args=None, return_result=False):
                     print(final_text)
                     print("--------------------------------------------------")
                     if return_result:
-                        return final_text
+                        return _format_output(final_text)
                 else:
                     print(f"⏭️  [{i}/{len(steps)}] 'done'")
                 continue
