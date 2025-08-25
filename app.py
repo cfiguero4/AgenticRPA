@@ -20,6 +20,7 @@ from replay import run_replay_task, collect_needed_vars
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKFLOWS_DIR = os.path.join(SCRIPT_DIR, "workflows")
 OUTPUTS_DIR = os.path.join(SCRIPT_DIR, "outputs")
+LOGO_DIR = os.path.join(SCRIPT_DIR, "logos")
 os.makedirs(WORKFLOWS_DIR, exist_ok=True)
 os.makedirs(OUTPUTS_DIR, exist_ok=True)
 
@@ -228,7 +229,21 @@ theme = gr.themes.Base(
 )
 
 with gr.Blocks(theme=theme) as demo:
-    gr.Markdown("# Agentic RPA (ARPA)")
+    with gr.Row(variant="panel"):
+        with gr.Column(scale=1, min_width=160):
+            gr.Image(
+                value=os.path.join(LOGO_DIR, "deloitte-logo.png"),
+                interactive=False, show_label=False, container=False,
+                show_download_button=False, show_fullscreen_button=False, height=50
+            )
+        with gr.Column(scale=1, min_width=160):
+            gr.Image(
+                value=os.path.join(LOGO_DIR, "gemini-logo.png"),
+                interactive=False, show_label=False, container=False,
+                show_download_button=False, show_fullscreen_button=False, height=50
+            )
+        with gr.Column(scale=4):
+            gr.Markdown('<div style="display: flex; align-items: center; height: 50px;"><h1 style="text-align: left; font-size: 2.5em; margin: 0;">Agentic RPA (ARPA)</h1></div>')
 
     # Estados para almacenar el último resultado JSON
     learn_result_state = gr.State("")
@@ -344,4 +359,4 @@ with gr.Blocks(theme=theme) as demo:
     )
 
 if __name__ == "__main__":
-    demo.launch(allowed_paths=[OUTPUTS_DIR])
+    demo.launch(allowed_paths=[OUTPUTS_DIR, LOGO_DIR])
